@@ -1,0 +1,545 @@
+{
+  "info": {
+    "name": "FloodLink – all endpoints",
+    "description": "Run folder 1 first: the login requests store tokens in collection variables. 'Create request' stores its id in requestId.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "authUrl",
+      "value": "http://localhost:5000/api/v1"
+    },
+    {
+      "key": "requestUrl",
+      "value": "http://localhost:8080/api/v1"
+    },
+    {
+      "key": "insightsUrl",
+      "value": "http://localhost:5001"
+    },
+    {
+      "key": "citizenToken",
+      "value": ""
+    },
+    {
+      "key": "volunteerToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "requestId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Auth – auth-realtime-service (Person 1)",
+      "item": [
+        {
+          "name": "Register citizen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{authUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Ravi\",\n  \"email\": \"ravi@example.com\",\n  \"password\": \"demo123\",\n  \"phone\": \"9876543210\",\n  \"role\": \"CITIZEN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Register with bad phone (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{authUrl}}/auth/register",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"X\",\n  \"email\": \"x@example.com\",\n  \"password\": \"demo123\",\n  \"phone\": \"123\",\n  \"role\": \"CITIZEN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Login citizen",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{authUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"citizen@floodlink.in\",\n  \"password\": \"demo123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('citizenToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login volunteer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{authUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"volunteer@floodlink.in\",\n  \"password\": \"demo123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('volunteerToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{authUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@floodlink.in\",\n  \"password\": \"demo123\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('adminToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Wrong password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{authUrl}}/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"citizen@floodlink.in\",\n  \"password\": \"wrong\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Who am I",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{authUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Requests – request-service (Person 2)",
+      "item": [
+        {
+          "name": "List all",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests"
+          }
+        },
+        {
+          "name": "List OPEN",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests?status=OPEN"
+          }
+        },
+        {
+          "name": "Create request (saves id)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"RESCUE\",\n  \"description\": \"Elderly couple trapped on first floor, water rising\",\n  \"latitude\": 12.979,\n  \"longitude\": 80.221,\n  \"address\": \"Gandhi Road, Velachery\",\n  \"peopleCount\": 2,\n  \"contactName\": \"Lakshmi\",\n  \"contactPhone\": \"9840012345\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.collectionVariables.set('requestId', pm.response.json().id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create duplicate (run right after)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"RESCUE\",\n  \"description\": \"Elderly couple trapped on the first floor, water is rising\",\n  \"latitude\": 12.9791,\n  \"longitude\": 80.2211,\n  \"address\": \"Gandhi Rd, Velachery\",\n  \"peopleCount\": 2,\n  \"contactName\": \"Lakshmi\",\n  \"contactPhone\": \"9840012345\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Create with bad phone (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"RESCUE\",\n  \"description\": \"Elderly couple trapped on first floor, water rising\",\n  \"latitude\": 12.979,\n  \"longitude\": 80.221,\n  \"address\": \"Gandhi Road, Velachery\",\n  \"peopleCount\": 2,\n  \"contactName\": \"Lakshmi\",\n  \"contactPhone\": \"12345\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get one",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/{{requestId}}"
+          }
+        },
+        {
+          "name": "Claim as citizen (403)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/{{requestId}}/claim"
+          }
+        },
+        {
+          "name": "Claim (volunteer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/{{requestId}}/claim"
+          }
+        },
+        {
+          "name": "Claim again (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/{{requestId}}/claim"
+          }
+        },
+        {
+          "name": "Resolve (volunteer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/{{requestId}}/resolve"
+          }
+        },
+        {
+          "name": "My claimed requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/claimed/me"
+          }
+        },
+        {
+          "name": "Update (admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/{{requestId}}",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Elderly couple trapped (edited by admin)\",\n  \"address\": \"12 Gandhi Road, Velachery\",\n  \"peopleCount\": 3,\n  \"contactName\": \"Lakshmi\",\n  \"contactPhone\": \"9840012345\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{requestUrl}}/requests/{{requestId}}"
+          }
+        },
+        {
+          "name": "Health (actuator)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "http://localhost:8080/actuator/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Insights – insights-service (Person 3)",
+      "item": [
+        {
+          "name": "Analyze (duplicate + reasons)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{citizenToken}}"
+              }
+            ],
+            "url": "{{insightsUrl}}/api/v1/analyze",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request\": {\n    \"type\": \"RESCUE\",\n    \"description\": \"Elderly couple trapped on first floor\",\n    \"latitude\": 12.9815,\n    \"longitude\": 80.218,\n    \"address\": \"4th Main Road, Velachery\",\n    \"peopleCount\": 2\n  },\n  \"recentRequests\": [\n    {\n      \"id\": 7,\n      \"type\": \"RESCUE\",\n      \"description\": \"Elderly couple trapped on 1st floor\",\n      \"latitude\": 12.9816,\n      \"longitude\": 80.2181\n    }\n  ]\n}"
+            }
+          }
+        },
+        {
+          "name": "Analyze without token (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{insightsUrl}}/api/v1/analyze",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"request\": {\n    \"type\": \"FOOD\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Stats (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{insightsUrl}}/api/v1/stats"
+          }
+        },
+        {
+          "name": "Stats as volunteer (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{volunteerToken}}"
+              }
+            ],
+            "url": "{{insightsUrl}}/api/v1/stats"
+          }
+        },
+        {
+          "name": "Printable report (open in browser)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{insightsUrl}}/report?token={{adminToken}}"
+          }
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{insightsUrl}}/api/v1/health"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Live – auth-realtime-service (Person 1)",
+      "item": [
+        {
+          "name": "Publish event by hand (browsers update!)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{authUrl}}/events",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"request:updated\",\n  \"data\": {\n    \"id\": 999,\n    \"type\": \"FOOD\",\n    \"description\": \"Test broadcast from Postman\",\n    \"latitude\": 13.0,\n    \"longitude\": 80.22,\n    \"address\": \"Test Street, Adyar\",\n    \"peopleCount\": 1,\n    \"contactName\": \"Test\",\n    \"contactPhone\": \"9000000000\",\n    \"status\": \"OPEN\",\n    \"priorityScore\": 22,\n    \"priorityReasons\": [\n      \"FOOD request: +20\"\n    ],\n    \"duplicateOfId\": null,\n    \"claimedBy\": null,\n    \"createdAt\": \"2025-12-02T10:15:00\",\n    \"updatedAt\": \"2025-12-02T10:15:00\"\n  }\n}"
+            }
+          }
+        },
+        {
+          "name": "Activity log",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
+            "url": "{{authUrl}}/activity?limit=20"
+          }
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{authUrl}}/health"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+/* [Person 1 – live] Volunteer dots on the map (VolunteerDots.jsx): a teal dot with a ring that ripples outwards,
+   so a live volunteer is easy to tell apart from a help request. */
+.fl-volunteer {
+  background: none;
+  border: none;
+}
+
+.fl-volunteer__dot {
+  position: relative;
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: 2px;
+  border-radius: 50%;
+  background: #2dd4bf;
+  border: 2px solid #0a0f1c;
+  box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.45);
+}
+
+.fl-volunteer__dot::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  border: 2px solid rgba(45, 212, 191, 0.7);
+  animation: fl-volunteer-ripple 2.2s ease-out infinite;
+}
+
+@keyframes fl-volunteer-ripple {
+  from { transform: scale(0.5); opacity: 1; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fl-volunteer__dot::after { animation: none; opacity: 0.5; }
+}

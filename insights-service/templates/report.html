@@ -1,0 +1,129 @@
+{#
+  Jinja2 template for GET /report (rendered by routes/report_routes.py).
+  Double curly braces print a value; brace-percent tags run a loop or condition.
+  "stats" comes from services/stats_service.build_stats(); "recent" is the latest analyses.
+#}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FloodLink Insights Report</title>
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 0; padding: 24px 16px; background: #f4f7fb; color: #1d2733; }
+    main { max-width: 960px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+    h1 { margin: 0 0 4px; }
+    .subtitle { color: #5b6b7d; margin: 0; }
+    button { padding: 8px 16px; border: 0; border-radius: 6px; background: #0d47a1; color: #fff; font-size: 14px; cursor: pointer; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .card, section { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+    .card .label { color: #5b6b7d; font-size: 13px; }
+    .card .value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    section { overflow-x: auto; }
+    section.full { margin-bottom: 24px; }
+    h2 { font-size: 17px; margin: 0 0 8px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid #e6ebf1; vertical-align: top; }
+    th { color: #5b6b7d; font-weight: 600; }
+    .reasons { color: #5b6b7d; font-size: 12px; margin: 0; padding-left: 16px; }
+    .badge { padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+    .dup { background: #fde2e1; color: #b42318; }
+    .unique { background: #dcfae6; color: #067647; }
+    /* Printable: drop backgrounds, shadows and the print button so it looks clean on paper */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .card, section { box-shadow: none; border: 1px solid #ccc; }
+      button { display: none; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>FloodLink · Insights Report</h1>
+      <p class="subtitle">Generated {{ generated_at.strftime('%d %b %Y, %H:%M') }} for {{ generated_by }}</p>
+    </div>
+    <button onclick="window.print()">Print report</button>
+  </header>
+
+  <div class="cards">
+    <div class="card"><div class="label">Total requests</div><div class="value">{{ stats.totalRequests }}</div></div>
+    <div class="card"><div class="label">Still open</div><div class="value">{{ stats.requestsByStatus.OPEN }}</div></div>
+    <div class="card"><div class="label">Resolved</div><div class="value">{{ stats.requestsByStatus.RESOLVED }}</div></div>
+    <div class="card"><div class="label">Duplicates caught</div><div class="value">{{ stats.duplicatesCaught }}</div></div>
+    <div class="card"><div class="label">Duplicates merged</div><div class="value">{{ stats.duplicatesMerged }}</div></div>
+    <div class="card"><div class="label">Average priority</div><div class="value">{{ stats.averagePriority }}</div></div>
+    <div class="card">
+      <div class="label">Avg. time to resolve</div>
+      <div class="value">{% if stats.averageResolveMinutes is not none %}{{ stats.averageResolveMinutes }} min{% else %}–{% endif %}</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section>
+      <h2>By type</h2>
+      <table>
+        {% for request_type, count in stats.requestsByType.items() %}
+        <tr><td>{{ request_type }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+      </table>
+    </section>
+    <section>
+      <h2>By status</h2>
+      <table>
+        {% for status, count in stats.requestsByStatus.items() %}
+        <tr><td>{{ status }}</td><td>{{ count }}</td></tr>
+        {% endfor %}
+      </table>
+    </section>
+  </div>
+
+  <section class="full">
+    <h2>By area</h2>
+    <table>
+      <tr><th>Area</th><th>Total</th><th>Open</th><th>Claimed</th><th>Resolved</th><th>Avg. time to resolve</th></tr>
+      {% for row in stats.areaBreakdown %}
+      <tr>
+        <td>{{ row.area }}</td>
+        <td>{{ row.total }}</td>
+        <td>{{ row.OPEN }}</td>
+        <td>{{ row.CLAIMED }}</td>
+        <td>{{ row.RESOLVED }}</td>
+        <td>{% if row.averageResolveMinutes is not none %}{{ row.averageResolveMinutes }} min{% else %}–{% endif %}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">No requests yet.</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+
+  <section class="full">
+    <h2>10 most recent analyses ({{ stats.totalAnalyses }} in total)</h2>
+    <table>
+      <tr><th>Time</th><th>Type</th><th>Area</th><th>Priority</th><th>Result</th><th>Reasons</th></tr>
+      {% for record in recent %}
+      <tr>
+        <td>{{ record.analyzed_at.strftime('%d %b %H:%M') }}</td>
+        <td>{{ record.request_type }}</td>
+        <td>{{ record.area }}</td>
+        <td>{{ record.priority_score }}</td>
+        <td>
+          {% if record.is_duplicate %}
+          <span class="badge dup">Duplicate of #{{ record.duplicate_of_id }}</span>
+          {% else %}
+          <span class="badge unique">Unique</span>
+          {% endif %}
+        </td>
+        <td><ul class="reasons">{% for reason in record.reasons.split('\n') if reason %}<li>{{ reason }}</li>{% endfor %}</ul></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6">Nothing analyzed yet.</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+</main>
+</body>
+</html>

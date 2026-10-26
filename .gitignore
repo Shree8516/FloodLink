@@ -1,0 +1,24 @@
+# Secrets: every service reads a local .env (copied from .env.example). Never commit them.
+.env
+.env.*
+!.env.example
+
+# Dependencies and build output (recreated by npm install / pip install / mvn)
+node_modules/
+dist/
+target/
+venv/
+__pycache__/
+*.pyc
+
+# Local databases and logs
+instance/
+*.db
+*.log
+
+# Editors and OS files
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
