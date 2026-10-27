@@ -170,6 +170,7 @@ cd insights-service && python -m unittest discover tests   # duplicates, priorit
 | The "Live" dot is grey | auth-realtime-service is down. Requests still save; refresh after restarting it. |
 | Stale markers never appear | A request becomes stale after 6 hours. For a demo, set `VITE_STALE_AFTER_HOURS=0.05` in `frontend/.env` and restart `npm run dev`. |
 | Browser alerts / location sharing don't work | Allow notifications/location for localhost in the browser's site settings (the bell and location buttons are in the navbar). |
+| Port 5000 already in use (macOS) | macOS AirPlay Receiver listens on port 5000 by default. Turn off AirPlay Receiver in *System Settings > General > AirDrop & AirPlay*, or customize `PORT` in `auth-realtime-service/.env`. |
 
 ---
 
