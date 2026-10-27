@@ -1,5 +1,6 @@
 # HTTP endpoints POST /api/v1/analyze and GET /api/v1/health. /analyze is called by request-service every
-# time a citizen posts a request (with the citizen's JWT). Validates input, runs both rules, saves the result.
+# time a citizen posts a request (with the citizen's JWT). Validates input, runs the duplicate rule and the
+# LLM priority assessment (Ollama), then saves the result.
 import logging
 from datetime import datetime
 
@@ -10,6 +11,7 @@ from errors import ApiError
 from models import AnalysisRecord, db
 from services.area import area_from_address
 from services.duplicate_service import describe_duplicate, find_duplicate
+from services.llm_client import LlmError, list_models, resolve_model
 from services.priority_service import calculate_priority
 
 logger = logging.getLogger(__name__)
@@ -93,10 +95,11 @@ def analyze_request():
           example:
             isDuplicate: true
             duplicateOfId: 7
-            priorityScore: 54
-            reasons: ["RESCUE request: +40", "2 people affected: +4", "Urgent words (elderly, trapped): +10", "Possible duplicate of #7: 92% similar text, 14 m away, 20 min apart"]
+            priorityScore: 70
+            reasons: ["Water rising, elderly couple cannot leave first floor: +45", "Elderly, one person immobile: +20", "2 people: +5", "Possible duplicate of #7: 92% similar text, 14 m away, 20 min apart"]
       400: {description: Missing or invalid fields}
       401: {description: Missing or invalid JWT}
+      503: {description: The local LLM (Ollama) could not score the request}
     """
     body = request.get_json(silent=True) or {}
     new_request = parse_request_item(body.get("request"), "request")
@@ -116,6 +119,26 @@ def analyze_request():
                    duplicateOfId=duplicate["id"] if duplicate else None,
                    priorityScore=priority_score,
                    reasons=reasons)
+
+
+@analyze_bp.get("/api/v1/health/llm")
+def health_llm():
+    """Checks that Ollama is running and which model scores the requests (no login needed).
+    ---
+    tags: [Health]
+    responses:
+      200:
+        description: Ollama is reachable
+        schema:
+          type: object
+          example: {status: UP, model: "qwen2.5:7b", installedModels: ["qwen2.5:7b", "llama3.2:3b"]}
+      503: {description: Ollama is not reachable or has no chat model}
+    """
+    try:
+        model = resolve_model()
+        return jsonify(status="UP", model=model, installedModels=list_models())
+    except LlmError as error:
+        return jsonify(status="DOWN", message=str(error)), 503
 
 
 @analyze_bp.get("/api/v1/health")

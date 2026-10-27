@@ -1,6 +1,6 @@
 // [Person 3 – insights] Shows a request's priority score with a level word (High / Medium / Low).
-// Hovering (or tapping on a phone) shows the breakdown: one bar for 0-100 split into the parts that earned the
-// points, and each reason from insights-service, so the score is never a black box.
+// Hovering (or tapping on a phone) shows the breakdown: one bar for 0-100 split into the factors the LLM gave
+// points to, and each reason from insights-service, so the score is never a black box.
 // PriorityBreakdown is also used on its own by the live preview in the post form (SuggestionPanel).
 import { Box, Chip, Stack, Tooltip, Typography } from '@mui/material';
 import SpeedIcon from '@mui/icons-material/Speed';
@@ -13,18 +13,18 @@ export function PriorityBreakdown({ score, reasons = [] }) {
       {/* One bar out of 100: each coloured segment is one part of the score */}
       <Box sx={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', bgcolor: 'rgba(148, 163, 184, 0.15)', mb: 1.25 }}
         role="img" aria-label={`Priority ${score} out of 100`}>
-        {parts.map((part) => (
-          <Box key={part.label} sx={{ width: `${part.points}%`, bgcolor: part.color }} />
+        {parts.map((part, index) => (
+          <Box key={`${index}-${part.label}`} sx={{ width: `${part.points}%`, bgcolor: part.color }} />
         ))}
       </Box>
       <Stack spacing={0.75}>
         {parts.length === 0 && <Typography variant="body2">No details available.</Typography>}
-        {parts.map((part) => (
-          <Stack key={part.label} direction="row" spacing={1} alignItems="center">
+        {parts.map((part, index) => (
+          <Stack key={`${index}-${part.label}`} direction="row" spacing={1} alignItems="center">
             <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: part.color, flexShrink: 0 }} />
             <Typography variant="body2" sx={{ flex: 1 }}>{part.label}</Typography>
             <Typography variant="body2" fontWeight={700} sx={{ fontVariantNumeric: 'tabular-nums' }}>
-              +{part.points}<Typography component="span" variant="caption" color="text.secondary"> / {part.max}</Typography>
+              +{part.points}
             </Typography>
           </Stack>
         ))}

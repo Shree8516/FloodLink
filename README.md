@@ -51,7 +51,7 @@ Every endpoint, body and example response is in **[CONTRACT.md](CONTRACT.md)** (
 |--------|---------|----------|----------|
 | **Person 1 – Accounts & Live** | `/auth-realtime-service` (Node, Express, MongoDB, Socket.io) | `frontend/src/app`, `features/auth`, `features/live` | Register/login, the only JWT issuer, event broadcasting, activity log, **volunteer presence** · app shell, dark theme, login/register, live stats bar, toasts, **browser alerts**, **offline queue**, **SOS button** |
 | **Person 2 – Help Requests** | `/request-service` (Spring Boot, PostgreSQL) | `features/requests` | Request CRUD, claim/resolve, **timeline timestamps**, **merge endpoint** · map with clustering, heatmap, pulsing and stale markers, filter chips, nearest-first, 3-step post form, success screen, volunteer task board |
-| **Person 3 – Insights** | `/insights-service` (Flask, SQLAlchemy/SQLite) | `features/insights` | Duplicate detection, priority with reasons, **keyword suggestions**, `/stats` with **area breakdown**, printable `/report` · admin dashboard, priority breakdown, duplicate warning with merge, live priority preview |
+| **Person 3 – Insights** | `/insights-service` (Flask, SQLAlchemy/SQLite) | `features/insights` | Duplicate detection, priority with reasons **judged by a local LLM (Ollama)**, **LLM-based type suggestions**, `/stats` with **area breakdown**, printable `/report` · admin dashboard, priority breakdown, duplicate warning with merge, live priority preview |
 
 Each folder has its own README with details and a **"How to explain this in the presentation"** section.
 
@@ -97,6 +97,10 @@ Then edit them:
 - `request-service/.env`: set `DB_PASSWORD` to **your** PostgreSQL password.
 - **All three backends:** set the same `JWT_SECRET` (any random text of 32+ characters). Agree on one value as a team and share it privately, never in the repo.
 - `auth-realtime-service/.env`: if MongoDB fails to connect on `localhost`, use `MONGO_URI=mongodb://127.0.0.1:27017/floodlink`. For Atlas, paste your connection string.
+
+### 3b. Start Ollama (once, for priority scoring)
+The priority of every request is judged by a local LLM, so [Ollama](https://ollama.com) must be running with a chat model (e.g. `ollama pull qwen2.5:7b`).
+By default insights-service uses the first installed Qwen model; set `OLLAMA_MODEL` in `insights-service/.env` to pin another one. Check: http://localhost:5001/api/v1/health/llm
 
 ### 4. Start the four parts, one terminal each
 ```bash
@@ -153,7 +157,7 @@ To see live updates, open a second (incognito) window logged in as another role.
 ### Tests
 ```bash
 cd request-service  && mvn test                            # JUnit: claim, resolve, create, merge, timeline (13 tests)
-cd insights-service && python -m unittest discover tests   # duplicates, priority, stats, suggestions, JWT (29 tests)
+cd insights-service && python -m unittest discover tests   # duplicates, priority, stats, suggestions, JWT (43 tests, the LLM is faked)
 ```
 
 ### Troubleshooting
@@ -162,7 +166,7 @@ cd insights-service && python -m unittest discover tests   # duplicates, priorit
 | Everything returns 401 / you get logged out | `JWT_SECRET` differs between the three `.env` files. Make them identical and restart. |
 | "Cannot reach the server" on the map | request-service is down, or PostgreSQL isn't running / wrong `DB_PASSWORD`. |
 | Login fails with "Cannot reach the server" | auth-realtime-service or MongoDB is down. |
-| Priority is always 50 ("Insights service unavailable") | insights-service is down: `python app.py`. |
+| Priority is always 50 ("Insights service unavailable") | insights-service is down (`python app.py`) **or Ollama is not running / has no model**: open http://localhost:5001/api/v1/health/llm. |
 | The "Live" dot is grey | auth-realtime-service is down. Requests still save; refresh after restarting it. |
 | Stale markers never appear | A request becomes stale after 6 hours. For a demo, set `VITE_STALE_AFTER_HOURS=0.05` in `frontend/.env` and restart `npm run dev`. |
 | Browser alerts / location sharing don't work | Allow notifications/location for localhost in the browser's site settings (the bell and location buttons are in the navbar). |

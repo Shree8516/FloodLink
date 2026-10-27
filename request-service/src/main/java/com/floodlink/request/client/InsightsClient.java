@@ -23,11 +23,15 @@ public class InsightsClient {
     private final RestClient restClient;
 
     // Spring Boot's RestClient.Builder already knows how to write dates as ISO strings ("2025-12-02T10:15:00")
-    public InsightsClient(RestClient.Builder builder, @Value("${app.insights-service.url}") String baseUrl) {
-        // Short timeouts: a slow insights service must never make the citizen wait long
+    public InsightsClient(RestClient.Builder builder,
+                          @Value("${app.insights-service.url}") String baseUrl,
+                          @Value("${app.insights-service.read-timeout-ms}") int readTimeoutMs) {
+        // The priority is judged by a local LLM (Ollama), which needs seconds, not milliseconds. The read timeout
+        // must be a bit longer than OLLAMA_TIMEOUT_SECONDS in insights-service. If it still runs out, the fallback
+        // below saves the request with a default priority, so a citizen is never blocked from asking for help.
         SimpleClientHttpRequestFactory timeouts = new SimpleClientHttpRequestFactory();
         timeouts.setConnectTimeout(2000);
-        timeouts.setReadTimeout(3000);
+        timeouts.setReadTimeout(readTimeoutMs);
         this.restClient = builder.baseUrl(baseUrl).requestFactory(timeouts).build();
     }
 

@@ -1,7 +1,7 @@
-// [Person 3 – insights] Live help on step 1 of the post form, from insights-service's keyword rules:
+// [Person 3 – insights] Live help on step 1 of the post form, from the local LLM behind insights-service:
 // - "This sounds like a Rescue request (trapped, terrace)" with a one-click "Use Rescue" button
 // - a live priority preview: the score this request would get right now, with its breakdown
-// The preview uses the same rules as the real analysis, so citizens learn what makes a request urgent.
+// The preview comes from the same LLM assessment as the real analysis, so citizens learn what makes a request urgent.
 import { Alert, Box, Button, LinearProgress, Paper, Stack, Typography } from '@mui/material';
 import { TYPE_LABELS } from '../requests/requestConstants';
 import PriorityBadge, { PriorityBreakdown } from './PriorityBadge';
@@ -46,7 +46,7 @@ export default function SuggestionPanel({ description, type, peopleCount, onUseT
           <PriorityBreakdown score={preview.score} reasons={preview.reasons} />
           <Box sx={{ mt: 1.5 }}>
             <Typography variant="caption" color="text.secondary">
-              A preview from the same rules volunteers rely on. The final score is set once, when you send.
+              A preview from the same AI assessment volunteers rely on. The final score is set once, when you send.
             </Typography>
           </Box>
         </>

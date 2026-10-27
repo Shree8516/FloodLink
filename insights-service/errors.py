@@ -6,6 +6,8 @@ from http import HTTPStatus
 from flask import jsonify
 from werkzeug.exceptions import HTTPException
 
+from services.llm_client import LlmError
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,6 +30,13 @@ def register_error_handlers(app):
     @app.errorhandler(ApiError)
     def handle_api_error(error):
         return error_response(error.status, str(error))
+
+    @app.errorhandler(LlmError)
+    def handle_llm_error(error):
+        # The local model (Ollama) is off, still loading, too slow or gave garbage. There is no keyword fallback:
+        # the caller gets 503 (request-service then saves the request with its own default priority).
+        logger.warning("LLM unavailable: %s", error)
+        return error_response(503, f"The priority model (Ollama) could not answer: {error}")
 
     @app.errorhandler(HTTPException)
     def handle_http_error(error):

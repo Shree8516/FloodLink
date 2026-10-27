@@ -1,11 +1,12 @@
 // [Person 3 – insights] Asks insights-service POST /api/v1/suggest while the citizen types: which type the
-// description sounds like, how urgent it is, and a live priority preview. Waits until typing pauses (400 ms)
-// so we don't call the server on every key press. Returns { suggestion, status }.
+// description sounds like, how urgent it is, and a live priority preview. Waits until typing pauses (900 ms)
+// so we don't call the server on every key press (each call is judged by a local LLM, which takes a moment).
+// Returns { suggestion, status }.
 import { useEffect, useState } from 'react';
 import api from '../../app/api';
 import { INSIGHTS_URL } from '../../app/config';
 
-const DEBOUNCE_MS = 400;
+const DEBOUNCE_MS = 900;
 const MIN_LENGTH = 3;
 
 // The form may hold "" or "2000" while the user types; the preview just uses 1 until it's a valid number

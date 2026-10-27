@@ -60,7 +60,7 @@ sequenceDiagram
 5. Node pushes live        Node    ══Socket.io broadcast══════▶ every open browser updates its map instantly
 ```
 
-If insights-service is down, Spring saves the request with priority 50 and reason "Insights service unavailable". If auth-realtime-service is down, the request is still saved but nobody gets the live push.
+If insights-service is down, or its local LLM (Ollama) cannot score the request (it then answers 503), Spring saves the request with priority 50 and reason "Insights service unavailable". If auth-realtime-service is down, the request is still saved but nobody gets the live push.
 
 ## 5. Shared object: HelpRequest (returned by request-service)
 
@@ -214,13 +214,13 @@ Swagger UI: `http://localhost:5001/apidocs` · every endpoint except health need
 {
   "isDuplicate": true,
   "duplicateOfId": 7,
-  "priorityScore": 54,
-  "reasons": ["RESCUE request: +40", "2 people affected: +4", "Urgent words (elderly, trapped): +10",
-              "Possible duplicate of #7: 92% similar text, 14 m away, 20 min apart"]
+  "priorityScore": 70,
+  "reasons": ["Rising water, elderly couple cannot leave first floor: +45", "Elderly, one person immobile: +20",
+              "2 people: +5", "Possible duplicate of #7: 92% similar text, 14 m away, 20 min apart"]
 }
 ```
 Duplicate = same type **and** ≤ 200 m (haversine) **and** ≤ 2 h apart **and** description similarity > 0.6 (difflib).
-Priority = type (RESCUE 40 / MEDICINE 30 / FOOD 20 / SHELTER 15) + people (2 each, max 20) + waiting (5 per hour, max 15) + urgent words (5 each, max 25), capped at 100.
+Priority is judged entirely by a local LLM (Ollama): it reads the description (any language), the chosen type, the number of people and the waiting time, and decides the factors and the points each adds. The score is the sum of those points, capped at 100. There are no keyword lists or fixed weights. If the model cannot answer, the endpoint returns `503` (see section 3).
 
 ### GET /api/v1/stats – ADMIN
 Reads current requests from request-service (forwarding the JWT) and combines them with the analysis history.
@@ -271,9 +271,11 @@ Broadcast as Socket.io event `request:merged` with the same body.
 
 ### insights-service
 **POST /api/v1/suggest** (logged in): `{ "description": "...", "type": "RESCUE"?, "peopleCount": 2? }` returns
-`{ "suggestedType": "RESCUE", "matchedKeywords": ["trapped"], "urgency": "HIGH|MEDIUM|LOW", "urgentWords": [...], "priorityPreview": { "type", "score", "reasons" } }`. Nothing is saved.
+`{ "suggestedType": "RESCUE", "matchedKeywords": ["trapped"], "urgency": "HIGH|MEDIUM|LOW", "urgentWords": [...], "summary": "...", "priorityPreview": { "type", "score", "reasons" } }`. Nothing is saved. Everything is judged by the LLM: `matchedKeywords` are the phrases that show the type, `urgentWords` the phrases that raise urgency (names kept for compatibility). `503` when the model cannot answer.
+
+**GET /api/v1/health/llm** (public): `{ "status": "UP", "model": "qwen2.5:7b", "installedModels": [...] }`, or `503` `{ "status": "DOWN", "message" }` when Ollama is unreachable.
 
 **GET /api/v1/stats** now also returns `requestsByStatus.MERGED`, `duplicatesMerged`, and
 `areaBreakdown: [{ "area", "total", "OPEN", "CLAIMED", "RESOLVED", "averageResolveMinutes" }]`. Type and area counts leave out MERGED requests.
 
-**Reason format:** every scoring reason ends in `": +<points>"` (e.g. `"RESCUE request: +40"`); the UI parses it to draw the breakdown.
+**Reason format:** every scoring reason ends in `": +<points>"` (e.g. `"Infant needs milk: +12"`); the UI parses it to draw the breakdown. The label is free text written by the LLM, so the UI must not depend on particular label wording.

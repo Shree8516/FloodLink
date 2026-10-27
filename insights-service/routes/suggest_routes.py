@@ -1,5 +1,5 @@
 # POST /api/v1/suggest: live suggestions for the React "Ask for help" form while the citizen types
-# (suggested type, urgency and a priority preview). Nothing is saved: it's a preview, not an analysis.
+# (suggested type, urgency and a priority preview), all judged by the local LLM. Nothing is saved: it's a preview.
 from flask import Blueprint, jsonify, request
 
 from auth import require_jwt
@@ -46,12 +46,14 @@ def suggest():
           type: object
           example:
             suggestedType: RESCUE
-            matchedKeywords: [rising, trapped]
-            urgency: MEDIUM
-            urgentWords: [elderly, trapped]
-            priorityPreview: {type: RESCUE, score: 54, reasons: ["RESCUE request: +40", "2 people affected: +4", "Urgent words (elderly, trapped): +10"]}
+            matchedKeywords: ["water rising", "trapped"]
+            urgency: HIGH
+            urgentWords: ["elderly couple", "cannot walk"]
+            summary: "Elderly couple trapped upstairs with rising water."
+            priorityPreview: {type: RESCUE, score: 72, reasons: ["Water rising, cannot self-evacuate: +43", "Elderly couple: +24", "2 people: +5"]}
       400: {description: Missing or invalid fields}
       401: {description: Missing or invalid JWT}
+      503: {description: The local LLM (Ollama) could not answer}
     """
     body = request.get_json(silent=True) or {}
     description = body.get("description")
